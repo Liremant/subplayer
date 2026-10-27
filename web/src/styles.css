@@ -1,0 +1,1508 @@
+/* Hallmark · app-UI (component-scope) · genre: atmospheric · theme: custom "warm slate / amber"
+ * tokens: primitive → semantic → component · one accent, 3 % of surface
+ * motion: press feedback + instant focus rings only — no animation on high-frequency actions
+ * contrast: ink 15.9:1 · muted 5.8:1 · accent 8.5:1 (WCAG AA)
+ */
+
+/* ─── 1. Primitive ─────────────────────────────────────────────────────── */
+:root {
+  --step-050: oklch(15.5% 0.006 60);
+  --step-100: oklch(19% 0.007 60);
+  --step-150: oklch(23% 0.008 60);
+  --step-200: oklch(27% 0.008 60);
+  --step-300: oklch(31% 0.008 60);
+  --step-500: oklch(52% 0.007 60);
+  --step-650: oklch(64% 0.006 60);
+  --step-800: oklch(82% 0.005 60);
+  --step-930: oklch(93% 0.005 60);
+
+  --amber-500: oklch(74% 0.15 62);
+  --amber-600: oklch(66% 0.15 62);
+  --amber-950: oklch(22% 0.04 62);
+
+  /* 4 pt scale */
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  /* concentric radii: inner = outer − padding */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.625rem;
+
+  --z-base: 1;
+  --z-overlay: 2;
+  --z-sticky: 200;
+
+  /* major third from 16px */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.953rem;
+}
+
+/* ─── 2. Semantic ──────────────────────────────────────────────────────── */
+:root {
+  --color-paper: var(--step-050);
+  --color-surface: var(--step-100);
+  --color-surface-2: var(--step-150);
+  --color-rule: var(--step-300);
+  --color-muted: var(--step-650);
+  --color-faint: var(--step-500);
+  --color-ink: var(--step-930);
+  --color-accent: var(--amber-500);
+  --color-accent-dim: var(--amber-600);
+  --color-accent-ink: var(--amber-950);
+
+  --font-body: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --dur-press: 120ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ─── 3. Component ─────────────────────────────────────────────────────── */
+:root {
+  --row-bg: transparent;
+  --row-bg-hover: var(--color-surface);
+  --chip-bg: var(--color-surface);
+  --chip-bg-on: var(--color-accent);
+  --cue-bg-active: var(--color-surface-2);
+  --focus-ring: 2px solid var(--color-accent);
+  --hit-min: 2.5rem;
+}
+
+/* ─── base ─────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  /* clip, not hidden: keeps position: sticky alive */
+  overflow-x: clip;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+code {
+  font-family: var(--font-numeric);
+  font-size: 0.9em;
+  color: var(--color-accent);
+}
+
+:where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+/* Focus rings appear instantly — a fading ring leaves keyboard users blind. */
+:where(button, input, select, a):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ─── shell ────────────────────────────────────────────────────────────── */
+.screen {
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: var(--space-lg) clamp(1rem, 4vw, var(--space-xl)) var(--space-2xl);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding-block-end: var(--space-md);
+  border-block-end: 1px solid var(--color-rule);
+  margin-block-end: var(--space-lg);
+}
+
+.topbar__brand {
+  font-family: var(--font-numeric);
+  font-size: var(--text-md);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.topbar__title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.topbar__count,
+.topbar__hint {
+  margin-inline-start: auto;
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.topbar__hint {
+  display: none;
+}
+
+@media (min-width: 60rem) {
+  .topbar__hint {
+    display: block;
+  }
+}
+
+/* ─── controls ─────────────────────────────────────────────────────────── */
+.link,
+.btn,
+.chip,
+.primary {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: var(--hit-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-inline: var(--space-sm);
+  transition:
+    background-color var(--dur-press) var(--ease-out),
+    color var(--dur-press) var(--ease-out);
+}
+
+.link {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  padding-inline: var(--space-xs);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    color: var(--color-ink);
+    background: var(--color-surface);
+  }
+}
+
+.chip {
+  background: var(--chip-bg);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  border-radius: 999px;
+  padding-inline: var(--space-md);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    color: var(--color-ink);
+    background: var(--color-surface-2);
+  }
+}
+
+.chip--on,
+.chip--on:hover {
+  background: var(--color-surface-2);
+  color: var(--color-accent);
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px var(--color-accent-dim);
+}
+
+/* Small press targets get tactile scale; full-width rows don't (see .row). */
+.chip:active,
+.primary:active,
+.btn:active {
+  scale: 0.96;
+}
+
+.btn {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    background: var(--color-surface-2);
+  }
+}
+
+.btn:disabled {
+  color: var(--color-faint);
+  cursor: default;
+  background: transparent;
+}
+
+.primary {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 500;
+  padding-inline: var(--space-lg);
+}
+
+@media (pointer: coarse) {
+  .link,
+  .btn,
+  .chip,
+  .primary {
+    min-height: 2.75rem;
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+/* ─── catalog ──────────────────────────────────────────────────────────── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-block-end: var(--space-lg);
+}
+
+.filters__search,
+.panel__search input {
+  flex: 1 1 16rem;
+  min-width: 0;
+  min-height: var(--hit-min);
+  padding-inline: var(--space-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.filters__search::placeholder,
+.panel__search input::placeholder {
+  color: var(--color-faint);
+}
+
+.filters__search:focus,
+.panel__search input:focus {
+  border-color: var(--color-rule);
+}
+
+/* ─── catalog: shelves of cards ────────────────────────────────────────── */
+.shelf + .shelf {
+  margin-block-start: var(--space-xl);
+}
+
+.shelf__head {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+  padding-block-end: var(--space-sm);
+  margin-block-end: var(--space-md);
+  border-block-end: 1px solid var(--color-rule);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* minmax(0, …) keeps a long title from pushing the track past the viewport. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: var(--space-lg) var(--space-md);
+}
+
+.card__open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.card__open:focus-visible {
+  outline-offset: 3px;
+}
+
+.card__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin-block-start: var(--space-2xs);
+  font-weight: 500;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* The line the user cares about: where playback stopped. */
+.card__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card__progress--idle {
+  color: var(--color-faint);
+}
+
+.card__progress--done {
+  color: var(--color-muted);
+}
+
+.card__bar {
+  flex: 0 1 3rem;
+  min-width: 1.5rem;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--step-200);
+  overflow: hidden;
+}
+
+.card__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+/* Metadata lives on its own line so progress can own the one above it. */
+.card__meta {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── poster ───────────────────────────────────────────────────────────── */
+.poster {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+  /* a hairline keeps light posters from bleeding into the dark page */
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+}
+
+.poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.poster[data-empty] {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-2);
+}
+
+.poster__initial {
+  font-family: var(--font-numeric);
+  font-size: clamp(2rem, 8vw, 3.5rem);
+  font-weight: 500;
+  color: var(--color-faint);
+  user-select: none;
+}
+
+/* ─── sort ─────────────────────────────────────────────────────────────── */
+.sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline-start: auto;
+}
+
+.sort__label {
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 60rem) {
+  .sort__label {
+    display: none;
+  }
+
+  .sort {
+    margin-inline-start: 0;
+  }
+}
+
+/* A narrow row cannot host a left-growing menu: give the select the full row instead,
+   so its list lines up with the page edge rather than hanging off it. */
+@media (max-width: 40rem) {
+  .sort {
+    flex: 1 1 100%;
+  }
+
+  .sort .select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .select__trigger {
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+  }
+}
+
+/* ─── select (custom listbox) ──────────────────────────────────────────── */
+.select {
+  position: relative;
+}
+
+.select__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: var(--hit-min);
+  max-width: 16rem;
+  padding-inline: var(--space-sm) var(--space-xs);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-numeric);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-press) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .select__trigger:hover {
+    background: var(--color-surface-2);
+  }
+}
+
+.select__trigger:active {
+  scale: 0.98;
+}
+
+.select__trigger[aria-expanded='true'] {
+  border-color: var(--color-accent-dim);
+}
+
+.select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select__chevron {
+  flex: 0 0 auto;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-faint);
+  transition: transform 160ms var(--ease-out);
+}
+
+.select__trigger[aria-expanded='true'] .select__chevron {
+  transform: rotate(180deg);
+}
+
+.select__list {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-2xs));
+  z-index: var(--z-sticky);
+  min-width: 100%;
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: var(--space-2xs);
+  list-style: none;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px oklch(10% 0.01 60 / 0.5);
+  /* opens from its trigger, not from its own centre */
+  transform-origin: top right;
+  animation: select-in 140ms var(--ease-out);
+}
+
+@keyframes select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: 2.25rem;
+  padding-inline: var(--space-sm) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-muted);
+  font-family: var(--font-numeric);
+  font-size: var(--text-sm);
+  text-align: start;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.select__option--active {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.select__option[aria-selected='true'] {
+  color: var(--color-accent);
+}
+
+.select__check {
+  font-size: var(--text-xs);
+}
+
+/* ─── series page ──────────────────────────────────────────────────────── */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  margin-block-end: var(--space-xl);
+}
+
+@media (min-width: 40rem) {
+  .hero {
+    grid-template-columns: 11rem minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.hero__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.hero__title {
+  font-size: var(--text-xl);
+  overflow-wrap: anywhere;
+}
+
+.hero__meta {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+}
+
+.hero__resume {
+  align-self: start;
+  white-space: nowrap;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.hero__hint {
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+}
+
+.episodes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.episode {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    'num title state'
+    'num . dur';
+  align-items: center;
+  gap: 0 var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-xs);
+  border: 0;
+  border-block-end: 1px solid var(--step-200);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-press) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .episode:hover {
+    background: var(--color-surface);
+  }
+}
+
+.episode__num {
+  grid-area: num;
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+}
+
+.episode__title {
+  grid-area: title;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episode__state {
+  grid-area: state;
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.episode__state--done {
+  color: var(--color-muted);
+}
+
+.episode__dur {
+  grid-area: dur;
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+  text-align: end;
+  white-space: nowrap;
+}
+
+/* ─── poster picker ────────────────────────────────────────────────────── */
+.picker {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.picker__head {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.picker__search {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--hit-min);
+  padding-inline: var(--space-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+}
+
+.picker__status {
+  font-size: var(--text-sm);
+}
+
+.picker__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr));
+  gap: var(--space-sm);
+}
+
+.picker__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.picker__item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+}
+
+.picker__item:focus-visible img {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.picker__label {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── player settings panel ────────────────────────────────────────────── */
+.psettings {
+  position: relative;
+}
+
+.psettings__panel {
+  position: absolute;
+  inset-inline-end: 0;
+  bottom: calc(100% + var(--space-xs));
+  z-index: var(--z-sticky);
+  width: min(22rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px oklch(10% 0.01 60 / 0.5);
+}
+
+.psettings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: var(--hit-min);
+}
+
+.psettings__row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2xs);
+}
+
+.psettings__label {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.psettings__control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.psettings__control input[type='range'] {
+  width: 8rem;
+  accent-color: var(--color-accent);
+}
+
+.psettings__control output {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5ch;
+  text-align: end;
+}
+
+.psettings__control input[type='checkbox'] {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  accent-color: var(--color-accent);
+}
+
+.muted,
+.spaced {
+  color: var(--color-muted);
+}
+
+.spaced {
+  margin-block-start: var(--space-md);
+}
+
+.error {
+  color: var(--color-ink);
+  border-inline-start: 2px solid var(--color-accent);
+  padding-inline-start: var(--space-sm);
+}
+
+/* ─── player ───────────────────────────────────────────────────────────── */
+.player {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* The player is one screen: the cue panel scrolls inside itself instead of stretching
+   the document. A real episode has ~600 cues, which used to make the page 57 000px tall
+   and turn every interaction into a page scroll. */
+@media (min-width: 60rem) {
+  .player {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.player .topbar {
+  padding-inline: clamp(1rem, 4vw, var(--space-xl));
+  margin-block-end: 0;
+  flex-wrap: wrap;
+}
+
+.player__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* rows size to the video, not to the viewport: a stretched row leaves a void under
+     the player column while the cue panel runs the full height. */
+  min-height: 0;
+}
+
+@media (min-width: 60rem) {
+  .player__body {
+    grid-template-columns: minmax(0, 1fr) clamp(20rem, 26vw, 26rem);
+    /* the row must be able to shrink, or the panel's content sets its height */
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.player__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-md) clamp(1rem, 4vw, var(--space-xl));
+  gap: var(--space-sm);
+}
+
+.stage {
+  width: 100%;
+  /* the skin sets height: 100% and flex-grow; a player should size to its video */
+  flex: 0 0 auto;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: var(--step-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+
+  /* public skin properties only */
+  --media-accent-color: var(--color-accent);
+  --media-accent-text-color: var(--color-accent-ink);
+  --media-border-color: transparent;
+  --media-border-radius: var(--radius-lg);
+  --media-font-family: var(--font-body);
+  --media-object-fit: contain;
+  --media-scale-unit: 1rem;
+}
+
+/* shortcut: hides the packaged skin's speed-only settings trigger so there is exactly
+   one settings entry point. Depends on a private skin class — if a Video.js upgrade
+   renames it, the old trigger reappears (visible, harmless); rebuild the controls then. */
+.stage :where(.media-settings-menu-trigger) {
+  display: none;
+}
+
+/* ─── subtitle overlay ─────────────────────────────────────────────────── */
+/* Free placement: the block's centre sits at (--sub-x, --sub-y) of the video box, so a
+   position holds through resizing, fullscreen and any video aspect ratio. */
+.overlay {
+  position: absolute;
+  left: var(--sub-x, 50%);
+  top: var(--sub-y, 86%);
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: min(92%, 60rem);
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  font-size: var(--sub-size, 26px);
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: none;
+  text-shadow:
+    0 1px 3px oklch(18% 0.01 60 / 0.95),
+    0 0 14px oklch(18% 0.01 60 / 0.8);
+}
+
+/* An unbounded cue can be taller than the stage: clamp it and fade the overflow. */
+.overlay {
+  max-height: min(70%, 24rem);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent 0, black 1rem, black calc(100% - 1rem), transparent 100%);
+}
+
+/* While placing, the block is grabbable and shows where it sits. */
+.overlay--movable {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px dashed oklch(1 0 0 / 0.35);
+  border-radius: var(--radius-md);
+  background: oklch(15% 0.01 60 / 0.35);
+}
+
+.overlay--movable:active {
+  cursor: grabbing;
+}
+
+/* A phone-sized stage is short: scale the text down rather than pushing it off the frame. */
+@media (max-width: 40rem) {
+  .overlay {
+    font-size: calc(var(--sub-size, 26px) * 0.75);
+  }
+}
+
+.overlay__orig {
+  color: var(--color-ink);
+  font-weight: 500;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.overlay__trans {
+  font-size: 0.78em;
+  color: var(--step-800);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.overlay__prev {
+  font-size: 0.62em;
+  color: var(--step-650);
+  opacity: 0.75;
+}
+
+/* ─── shift bar ────────────────────────────────────────────────────────── */
+.shiftbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-xs);
+  padding: var(--space-2xs) 0;
+}
+
+.shiftbar__label {
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.shiftbar__value {
+  font-family: var(--font-numeric);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  min-width: 4.5ch;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* A non-zero shift is the thing you came here to set — mark it. */
+.shiftbar__value--set {
+  color: var(--color-accent);
+}
+
+.shiftbar__sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-rule);
+  margin-inline: var(--space-xs);
+}
+
+/* On narrow screens the two groups already stack, so the rule between them dangles. */
+@media (max-width: 60rem) {
+  .shiftbar__sep {
+    display: none;
+  }
+}
+
+.shiftbar__warn {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.shiftbar__mode {
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+  white-space: nowrap;
+}
+
+.shiftbar__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline-start: auto;
+}
+
+/* ─── fullscreen: video + dialogue column ──────────────────────────────── */
+/* The shell is the element fullscreen targets, so the panel can sit beside the video
+   instead of covering it. Outside fullscreen the shell is a plain block. */
+.stage-shell {
+  display: block;
+  min-width: 0;
+}
+
+.stage-shell:fullscreen {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: oklch(10% 0.008 60);
+  padding: 0;
+}
+
+/* The skin keeps its own 16/9 box on the page; in fullscreen it fills the free space. */
+.stage-shell:fullscreen .stage {
+  flex: 1 1 auto;
+  width: auto;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+  min-width: 0;
+}
+
+.fsbar {
+  flex: 0 0 clamp(20rem, 26vw, 30rem);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-inline-start: 1px solid oklch(1 0 0 / 0.12);
+  background: oklch(12% 0.008 60);
+}
+
+/* No room for a column on a phone-shaped screen: fall back to a bottom strip. */
+@media (max-width: 48rem) {
+  .stage-shell:fullscreen {
+    flex-direction: column;
+  }
+
+  .fsbar {
+    flex: 0 0 38dvh;
+    border-inline-start: 0;
+    border-block-start: 1px solid oklch(1 0 0 / 0.12);
+  }
+}
+
+.fsbar__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2xs);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.fsbar__cue {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color 200ms var(--ease-out),
+    box-shadow 200ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fsbar__cue:hover {
+    background: oklch(1 0 0 / 0.07);
+  }
+}
+
+.fsbar__cue--active,
+.fsbar__cue--active:hover {
+  background: oklch(1 0 0 / 0.13);
+  box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+.fsbar__cue--active .fsbar__orig {
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.fsbar__cue--active .fsbar__trans {
+  font-size: 1rem;
+  color: var(--color-muted);
+}
+
+.fsbar__time {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+  padding-block-start: 0.2em;
+}
+
+.fsbar__cue--active .fsbar__time {
+  color: var(--color-accent);
+}
+
+.fsbar__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  min-width: 0;
+}
+
+.fsbar__orig {
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+  transition: color 200ms var(--ease-out);
+}
+
+.fsbar__trans {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+  transition: color 200ms var(--ease-out);
+}
+
+/* ─── cue panel ────────────────────────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-inline-start: 1px solid var(--color-rule);
+  background: var(--step-100);
+}
+
+.panel__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-block-end: 1px solid var(--color-rule);
+}
+
+.panel__count {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+  white-space: nowrap;
+}
+
+.panel__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2xs) 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: 50dvh;
+}
+
+/* An Arabic or Hebrew cue has no word breaks to wrap on. */
+.cue__orig,
+.cue__trans {
+  word-break: normal;
+  line-break: anywhere;
+}
+
+@media (min-width: 60rem) {
+  .panel__list {
+    /* flex: 1 alone is not enough — a flex item's default min-height: auto refuses to
+       shrink below its content, so the list grew to fit all 600 cues. */
+    max-height: none;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
+.cue {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-xs) var(--space-md);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  /* The highlight travels between rows: both rows fade at once, so the eye follows the
+     accent edge instead of seeing it blink off and reappear somewhere else. */
+  transition:
+    background-color 200ms var(--ease-out),
+    box-shadow 200ms var(--ease-out),
+    color 200ms var(--ease-out);
+}
+
+/* High-frequency action: colour only, no motion, no scale. */
+@media (hover: hover) and (pointer: fine) {
+  .cue:hover {
+    background: var(--color-surface-2);
+  }
+}
+
+/* The line being spoken is the one you read — it gets the accent edge and grows,
+   so the panel works at a glance instead of needing a careful look. */
+.cue--active,
+.cue--active:hover {
+  background: var(--cue-bg-active);
+  box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+.cue__time {
+  font-family: var(--font-numeric);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
+  padding-block-start: 0.15em;
+}
+
+.cue--active .cue__time {
+  color: var(--color-accent);
+}
+
+.cue__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  min-width: 0;
+}
+
+.cue__orig {
+  font-size: 0.9375rem;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+  transition: color 200ms var(--ease-out);
+}
+
+.cue__trans {
+  font-size: var(--text-sm);
+  color: var(--color-faint);
+  overflow-wrap: anywhere;
+  transition: color 200ms var(--ease-out);
+}
+
+.cue--active .cue__orig {
+  color: var(--color-ink);
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.cue--active .cue__trans {
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+mark {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  border-radius: 2px;
+  padding-inline: 1px;
+}
+
+/* ─── settings ─────────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 44rem;
+}
+
+.field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* `display: flex` stops the legend punching its gap in the fieldset border, so the
+   rule lives on the legend itself and the fieldset stays borderless. */
+.field legend {
+  width: 100%;
+  padding: 0 0 var(--space-xs);
+  border-block-end: 1px solid var(--color-rule);
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.field__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2xs);
+  align-items: center;
+  padding-block: var(--space-xs);
+  border-block-end: 1px solid var(--step-200);
+}
+
+@media (min-width: 40rem) {
+  .field__row {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+}
+
+.field__label {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.field__control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.field__control output {
+  font-family: var(--font-numeric);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+  min-width: 4ch;
+}
+
+.field__hint {
+  font-size: var(--text-xs);
+  color: var(--color-faint);
+  flex: 1 1 12rem;
+}
+
+.field input[type='range'] {
+  flex: 1 1 10rem;
+  min-width: 0;
+  accent-color: var(--color-accent);
+  min-height: var(--hit-min);
+}
+
+.field input[type='number'],
+.field select {
+  min-height: var(--hit-min);
+  min-width: 5rem;
+  padding-inline: var(--space-xs);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.field input[type='checkbox'] {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  accent-color: var(--color-accent);
+}
+
+.form__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* ─── reduced motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .chip:active,
+  .primary:active,
+  .btn:active {
+    scale: 1;
+  }
+}
