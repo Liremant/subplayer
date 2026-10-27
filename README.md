@@ -12,6 +12,9 @@ provides the controls needed to align third-party subtitles with a specific rele
 The application targets a single user on a local network. It has no accounts, no database,
 and no external metadata catalogue; the library is the filesystem.
 
+The interface was inspired by [2sub.movie](https://2sub.movie); this is an independent
+implementation, and nothing was copied from it. See [Acknowledgements](#acknowledgements).
+
 ## Contents
 
 - [Features](#features)
@@ -27,6 +30,7 @@ and no external metadata catalogue; the library is the filesystem.
 - [Development](#development)
 - [Deployment](#deployment)
 - [Project documentation](#project-documentation)
+- [Acknowledgements](#acknowledgements)
 - [License](#license)
 
 ## Features
@@ -322,8 +326,24 @@ hard-coded in `src/main.rs`; a `SUBPLAYER_HOST` variable would need to be added.
 | File | Contents | Language |
 |---|---|---|
 | [docs/ADDING-MEDIA.md](docs/ADDING-MEDIA.md) | Adding files, naming, posters, transcoding | English |
-| [SPEC.md](SPEC.md) | Product requirements and non-goals | Russian |
-| [AGENTS.md](AGENTS.md) | Repository conventions and constraints | Russian |
+| [AGENTS.md](AGENTS.md) | Scope, conventions and constraints | English |
+
+## Acknowledgements
+
+The interface was inspired by **[2sub.movie](https://2sub.movie)** — watching a film with the
+original line and its translation together, and a cue panel beside the video, is an idea worth
+building on. Credit for that idea is theirs.
+
+This is an independent implementation. Nothing was copied from that site: no code, no markup,
+no stylesheets, no images, no text. The stack is different (Rust, React, Video.js), the
+subtitle model is different (one file carrying both languages per cue, so the two languages
+can never drift out of sync), and the scope is deliberately smaller — a local library for one
+person, with no catalogue of translations, no accounts and no paywall.
+
+There is no affiliation with 2sub.movie, and no endorsement is implied.
+
+Poster metadata is provided by [TVmaze](https://www.tvmaze.com) and the
+[iTunes Search API](https://performance-partners.apple.com/search-api).
 
 ## License
 

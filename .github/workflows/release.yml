@@ -76,7 +76,7 @@ jobs:
           mkdir -p "dist/$name"
           cp "target/${{ matrix.target }}/release/subplayer" "dist/$name/"
           cp -r web/dist "dist/$name/web-dist"
-          cp README.md SPEC.md LICENSE AGENTS.md "dist/$name/"
+          cp README.md README.ru.md LICENSE AGENTS.md "dist/$name/"
           cp -r docs "dist/$name/docs"
           tar -czf "${{ matrix.archive }}" -C dist "$name"
 
@@ -88,7 +88,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path "dist/$name" | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/subplayer.exe" "dist/$name/"
           Copy-Item -Recurse "web/dist" "dist/$name/web-dist"
-          Copy-Item README.md,SPEC.md,LICENSE,AGENTS.md "dist/$name/"
+          Copy-Item README.md,README.ru.md,LICENSE,AGENTS.md "dist/$name/"
           Copy-Item -Recurse "docs" "dist/$name/docs"
           Compress-Archive -Path "dist/$name" -DestinationPath "${{ matrix.archive }}"
 
