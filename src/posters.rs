@@ -24,8 +24,12 @@ pub async fn search(http: &reqwest::Client, kind: &str, query: &str) -> Vec<Cand
 
 async fn tvmaze(http: &reqwest::Client, query: &str) -> Vec<Candidate> {
     let url = format!("https://api.tvmaze.com/search/shows?q={}", encode(query));
-    let Ok(res) = http.get(url).send().await else { return Vec::new() };
-    let Ok(rows) = res.json::<Vec<serde_json::Value>>().await else { return Vec::new() };
+    let Ok(res) = http.get(url).send().await else {
+        return Vec::new();
+    };
+    let Ok(rows) = res.json::<Vec<serde_json::Value>>().await else {
+        return Vec::new();
+    };
     rows.into_iter()
         .filter_map(|row| {
             let show = row.get("show")?;
@@ -47,10 +51,19 @@ async fn tvmaze(http: &reqwest::Client, query: &str) -> Vec<Candidate> {
 
 async fn itunes(http: &reqwest::Client, query: &str) -> Vec<Candidate> {
     // No `entity`/`media` filter: those currently return nothing, so filter client-side.
-    let url = format!("https://itunes.apple.com/search?term={}&limit=25", encode(query));
-    let Ok(res) = http.get(url).send().await else { return Vec::new() };
-    let Ok(body) = res.json::<serde_json::Value>().await else { return Vec::new() };
-    let Some(rows) = body.get("results").and_then(|r| r.as_array()) else { return Vec::new() };
+    let url = format!(
+        "https://itunes.apple.com/search?term={}&limit=25",
+        encode(query)
+    );
+    let Ok(res) = http.get(url).send().await else {
+        return Vec::new();
+    };
+    let Ok(body) = res.json::<serde_json::Value>().await else {
+        return Vec::new();
+    };
+    let Some(rows) = body.get("results").and_then(|r| r.as_array()) else {
+        return Vec::new();
+    };
     rows.iter()
         .filter(|row| row.get("kind").and_then(|k| k.as_str()) == Some("feature-movie"))
         .filter_map(|row| {

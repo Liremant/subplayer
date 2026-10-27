@@ -57,11 +57,14 @@ fn ratio(timescale: u32, ticks: f64) -> Option<f64> {
 }
 
 fn be32(buf: &[u8], at: usize) -> Option<u32> {
-    buf.get(at..at + 4).map(|b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]))
+    buf.get(at..at + 4)
+        .map(|b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]))
 }
 
 fn be64(buf: &[u8], at: usize) -> Option<u64> {
-    buf.get(at..at + 8).and_then(|b| b.try_into().ok()).map(u64::from_be_bytes)
+    buf.get(at..at + 8)
+        .and_then(|b| b.try_into().ok())
+        .map(u64::from_be_bytes)
 }
 
 #[cfg(test)]

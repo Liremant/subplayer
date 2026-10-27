@@ -72,7 +72,10 @@ pub struct Store {
 
 impl Store {
     pub fn new(dir: impl Into<PathBuf>) -> Self {
-        Self { dir: dir.into(), write_lock: Mutex::new(()) }
+        Self {
+            dir: dir.into(),
+            write_lock: Mutex::new(()),
+        }
     }
 
     fn settings_path(&self) -> PathBuf {
@@ -85,7 +88,9 @@ impl Store {
 
     /// Read from disk every time: the files are tiny and hand-editing them should just work.
     pub fn settings(&self) -> Settings {
-        read_json::<Settings>(&self.settings_path()).unwrap_or_default().sanitized()
+        read_json::<Settings>(&self.settings_path())
+            .unwrap_or_default()
+            .sanitized()
     }
 
     pub fn save_settings(&self, settings: Settings) -> Settings {
@@ -113,12 +118,21 @@ impl Store {
 
     fn write<T: Serialize>(&self, path: &Path, value: &T) {
         let _guard = self.write_lock.lock().unwrap();
-        let Ok(json) = serde_json::to_vec_pretty(value) else { return };
+        let Ok(json) = serde_json::to_vec_pretty(value) else {
+            return;
+        };
         let tmp = path.with_extension("json.tmp");
         // tmp + rename so a crash mid-write can't truncate the real file.
-        if std::fs::write(&tmp, json).is_ok() {
-            let _ = std::fs::rename(&tmp, path);
+        if std::fs::write(&tmp, json).is_err() {
+            return;
         }
+        if std::fs::rename(&tmp, path).is_ok() {
+            return;
+        }
+        // Windows refuses to rename onto an existing file, so progress and settings would
+        // silently stop updating after the first write. Replace, then retry.
+        let _ = std::fs::remove_file(path);
+        let _ = std::fs::rename(&tmp, path);
     }
 }
 
@@ -130,7 +144,9 @@ fn now() -> u64 {
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Option<T> {
-    std::fs::read_to_string(path).ok().and_then(|s| serde_json::from_str(&s).ok())
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
 }
 
 #[cfg(test)]
@@ -171,15 +187,55 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let store = Store::new(&dir);
-        assert_eq!(store.settings().mode, "both", "missing file yields defaults");
+        assert_eq!(
+            store.settings().mode,
+            "both",
+            "missing file yields defaults"
+        );
 
-        store.save_settings(Settings { mode: "orig".into(), ..Default::default() });
+        store.save_settings(Settings {
+            mode: "orig".into(),
+            ..Default::default()
+        });
         assert_eq!(store.settings().mode, "orig");
+        // A second write must land: on Windows a plain rename onto an existing file fails.
+        store.save_settings(Settings {
+            mode: "trans".into(),
+            ..Default::default()
+        });
+        assert_eq!(store.settings().mode, "trans");
 
-        store.save_progress("Breaking Bad/S01/E01", Progress { t: 12.5, dur: 100.0, shift: Some(-1.5), updated: 0 });
-        store.save_progress("Dune", Progress { t: 3.0, dur: 50.0, shift: None, updated: 0 });
+        store.save_progress(
+            "Breaking Bad/S01/E01",
+            Progress {
+                t: 12.5,
+                dur: 100.0,
+                shift: Some(-1.5),
+                updated: 0,
+            },
+        );
+        store.save_progress(
+            "Dune",
+            Progress {
+                t: 3.0,
+                dur: 50.0,
+                shift: None,
+                updated: 0,
+            },
+        );
+        // Overwriting an existing entry is the normal case, not the exception.
+        store.save_progress(
+            "Dune",
+            Progress {
+                t: 42.0,
+                dur: 50.0,
+                shift: None,
+                updated: 0,
+            },
+        );
         let all = store.progress();
         assert_eq!(all.len(), 2);
+        assert_eq!(all["Dune"].t, 42.0);
         assert_eq!(all["Breaking Bad/S01/E01"].shift, Some(-1.5));
         assert!(all["Dune"].updated > 0, "the server stamps the save time");
 

@@ -102,7 +102,7 @@ pub fn scan(root: &Path, poster_dir: &Path) -> Library {
     let series = grouped
         .into_iter()
         .map(|(name, mut episodes)| {
-            episodes.sort_by(|a, b| (a.season, a.episode).cmp(&(b.season, b.episode)));
+            episodes.sort_by_key(|e| (e.season, e.episode));
             let slug = crate::posters::slug(&name);
             let year = episodes.iter().find_map(|e| e.year);
             let durations: Vec<f64> = episodes.iter().filter_map(|e| e.duration).collect();
@@ -125,7 +125,7 @@ pub fn scan(root: &Path, poster_dir: &Path) -> Library {
         })
         .collect();
 
-    movies.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+    movies.sort_by_key(|m| m.title.to_lowercase());
     Library { movies, series }
 }
 
@@ -148,10 +148,7 @@ fn item_from_dir(root: &Path, poster_dir: &Path, dir: &Path) -> Option<Item> {
         })?;
     let rel_dir = dir.strip_prefix(root).ok()?;
     let id = rel_dir.to_string_lossy().replace('\\', "/");
-    let subs = SUBS_NAMES
-        .iter()
-        .map(|n| dir.join(n))
-        .find(|p| p.is_file());
+    let subs = SUBS_NAMES.iter().map(|n| dir.join(n)).find(|p| p.is_file());
 
     let guessed = guess_from_path(&id);
     let meta: Meta = std::fs::read_to_string(dir.join("meta.json"))
@@ -279,7 +276,12 @@ fn guess_from_path(id: &str) -> Guess {
         .unwrap_or_else(|| parts.last().copied().unwrap_or(id));
 
     let (title, year) = clean_name(name_part);
-    Guess { title, season, episode, year }
+    Guess {
+        title,
+        season,
+        episode,
+        year,
+    }
 }
 
 /// Strips scene-release noise: `Dune.2021.1080p.BluRay.x264-GRP` → ("Dune", 2021).
@@ -315,7 +317,9 @@ fn bare(token: &str) -> &str {
 fn is_year(token: &str) -> bool {
     token.len() == 4
         && token.chars().all(|c| c.is_ascii_digit())
-        && token.parse::<u32>().is_ok_and(|y| (1880..=2100).contains(&y))
+        && token
+            .parse::<u32>()
+            .is_ok_and(|y| (1880..=2100).contains(&y))
 }
 
 fn is_tag(token: &str) -> bool {
@@ -377,15 +381,27 @@ mod tests {
 
     #[test]
     fn strips_scene_release_noise() {
-        assert_eq!(clean_name("Dune.2021.1080p.BluRay.x264-GRP"), (Some("Dune".into()), Some(2021)));
+        assert_eq!(
+            clean_name("Dune.2021.1080p.BluRay.x264-GRP"),
+            (Some("Dune".into()), Some(2021))
+        );
         assert_eq!(
             clean_name("The.Matrix.1999.2160p.UHD.BluRay.x265"),
             (Some("The Matrix".into()), Some(1999))
         );
         assert_eq!(clean_name("Dune (2021)"), (Some("Dune".into()), Some(2021)));
-        assert_eq!(clean_name("Arrival 2016"), (Some("Arrival".into()), Some(2016)));
-        assert_eq!(clean_name("Some.Movie.1080p.WEB-DL"), (Some("Some Movie".into()), None));
-        assert_eq!(clean_name("Breaking Bad"), (Some("Breaking Bad".into()), None));
+        assert_eq!(
+            clean_name("Arrival 2016"),
+            (Some("Arrival".into()), Some(2016))
+        );
+        assert_eq!(
+            clean_name("Some.Movie.1080p.WEB-DL"),
+            (Some("Some Movie".into()), None)
+        );
+        assert_eq!(
+            clean_name("Breaking Bad"),
+            (Some("Breaking Bad".into()), None)
+        );
         assert_eq!(clean_name(""), (None, None));
     }
 
@@ -393,23 +409,42 @@ mod tests {
     fn guesses_hierarchy_and_movies() {
         assert_eq!(
             guess_from_path("Breaking Bad/S01/E01"),
-            Guess { title: Some("Breaking Bad".into()), season: Some(1), episode: Some(1), year: None }
+            Guess {
+                title: Some("Breaking Bad".into()),
+                season: Some(1),
+                episode: Some(1),
+                year: None
+            }
         );
         assert_eq!(
             guess_from_path("Dune.2021.1080p.BluRay"),
-            Guess { title: Some("Dune".into()), season: None, episode: None, year: Some(2021) }
+            Guess {
+                title: Some("Dune".into()),
+                season: None,
+                episode: None,
+                year: Some(2021)
+            }
         );
     }
 
     #[test]
     fn finds_the_series_folder() {
         let two = ["Breaking Bad/S01/E01", "Breaking Bad/S01/E02"];
-        assert_eq!(series_folder(two.into_iter()).as_deref(), Some("Breaking Bad"));
+        assert_eq!(
+            series_folder(two.into_iter()).as_deref(),
+            Some("Breaking Bad")
+        );
         // One episode must resolve to the series folder too, not to its season folder.
         let one = ["Breaking Bad/S01/E01"];
-        assert_eq!(series_folder(one.into_iter()).as_deref(), Some("Breaking Bad"));
+        assert_eq!(
+            series_folder(one.into_iter()).as_deref(),
+            Some("Breaking Bad")
+        );
         let flat = ["Breaking Bad/E01"];
-        assert_eq!(series_folder(flat.into_iter()).as_deref(), Some("Breaking Bad"));
+        assert_eq!(
+            series_folder(flat.into_iter()).as_deref(),
+            Some("Breaking Bad")
+        );
         assert_eq!(series_folder(std::iter::empty()), None);
     }
 
@@ -427,13 +462,24 @@ mod tests {
         }
         std::fs::write(movie.join("subs.vtt"), b"").unwrap();
         std::fs::write(movie.join("poster.jpg"), b"x").unwrap();
-        std::fs::write(ep2.join("meta.json"), r#"{"title":"Breaking Bad","duration":2880}"#).unwrap();
+        std::fs::write(
+            ep2.join("meta.json"),
+            r#"{"title":"Breaking Bad","duration":2880}"#,
+        )
+        .unwrap();
 
         let lib = scan(&root.join("media"), &posters);
-        assert_eq!(lib.movies.len(), 1, "folder without meta.json must still appear");
+        assert_eq!(
+            lib.movies.len(),
+            1,
+            "folder without meta.json must still appear"
+        );
         assert_eq!(lib.movies[0].title, "Dune");
         assert_eq!(lib.movies[0].year, Some(2021));
-        assert_eq!(lib.movies[0].poster.as_deref(), Some("/media/Dune.2021.1080p.BluRay/poster.jpg"));
+        assert_eq!(
+            lib.movies[0].poster.as_deref(),
+            Some("/media/Dune.2021.1080p.BluRay/poster.jpg")
+        );
 
         assert_eq!(lib.series.len(), 1, "episodes belong to one series card");
         let series = &lib.series[0];
@@ -442,7 +488,10 @@ mod tests {
         assert_eq!(series.episodes.len(), 2);
         assert_eq!(series.seasons, 1);
         assert_eq!(series.duration, Some(2880.0));
-        assert_eq!((series.episodes[0].season, series.episodes[0].episode), (Some(1), Some(1)));
+        assert_eq!(
+            (series.episodes[0].season, series.episodes[0].episode),
+            (Some(1), Some(1))
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 }
