@@ -21,3 +21,6 @@
 # Python bytecode (scripts are run directly)
 __pycache__/
 *.pyc
+
+# Local release staging
+dist-rel/

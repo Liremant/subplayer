@@ -76,8 +76,32 @@ async fn main() {
         .fallback_service(ServeDir::new(&dist).fallback(ServeFile::new(&index)))
         .with_state(state);
 
+    // A missing bundle looks like a broken server, not an unbuilt frontend — say so.
+    if !index.is_file() {
+        eprintln!(
+            "warning: {} not found — the UI will 404.\n         build it first: cd web && pnpm install && pnpm build",
+            index.display()
+        );
+    }
+    if !media.is_dir() {
+        eprintln!(
+            "warning: media folder {} does not exist — the catalog will be empty",
+            media.display()
+        );
+    }
+
     let addr = format!("127.0.0.1:{port}");
-    let listener = tokio::net::TcpListener::bind(&addr).await.expect("bind failed");
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(listener) => listener,
+        Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+            eprintln!("error: {addr} is already in use — another subplayer is running, or set SUBPLAYER_PORT");
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("error: cannot bind {addr}: {e}");
+            std::process::exit(1);
+        }
+    };
     println!("subplayer on http://{addr}  (media: {})", media.display());
     axum::serve(listener, app).await.unwrap();
 }
@@ -116,7 +140,12 @@ async fn post_progress(
 ) -> Json<serde_json::Value> {
     st.store.save_progress(
         &input.id,
-        store::Progress { t: input.t, dur: input.dur, shift: input.shift, updated: 0 },
+        store::Progress {
+            t: input.t,
+            dur: input.dur,
+            shift: input.shift,
+            updated: 0,
+        },
     );
     Json(serde_json::json!({ "ok": true }))
 }
