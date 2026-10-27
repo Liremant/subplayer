@@ -1,12 +1,13 @@
-# Как добавить видео
+# Adding media
 
-Короткая версия: **положи папку с `video.mp4` в `media/` — она появится в каталоге при
-следующем обновлении страницы.** Ничего импортировать, регистрировать и перезапускать не
-нужно.
+[Русский](ADDING-MEDIA.ru.md) · **English**
+
+In short: **place a directory containing `video.mp4` inside `media/` and reload the page.**
+Nothing needs to be imported, registered, or restarted.
 
 ```
 subplayer/
-  media/                 ← сюда
+  media/                 ← here
     Dune.2021/
       video.mp4
     Breaking Bad/
@@ -15,55 +16,49 @@ subplayer/
           video.mp4
 ```
 
-Открой `http://127.0.0.1:3000` и обнови страницу.
+Open <http://127.0.0.1:3000> and reload the page.
 
----
+## Directory contents
 
-## Что именно должно лежать в папке
-
-| Файл | Обязателен | Что это |
+| File | Required | Purpose |
 |---|---|---|
-| `video.mp4` | **да** | видео. Имя любое, расширение `.mp4` / `.m4v` / `.webm` |
-| `subs.vtt` | нет | субтитры, оба языка в одном файле |
-| `meta.json` | нет | название, год, тип — если из имени папки не угадывается |
-| `poster.jpg` | нет | обложка |
+| `video.mp4` | **yes** | the video. Any file name; extension `.mp4`, `.m4v` or `.webm` |
+| `subs.vtt` | no | subtitles, both languages in one file |
+| `meta.json` | no | title, year, type — when the directory name is not enough |
+| `poster.jpg` | no | cover image |
 
-Папка без `meta.json` и без субтитров тоже работает — просто в карточке не будет
-длительности из метаданных (она читается из самого файла) и не будет субтитров.
+A directory without `meta.json` or subtitles is still valid; the card simply shows no
+subtitle track.
 
----
+## Supported video
 
-## Какое видео подойдёт
+The player does not transcode on the fly. The browser plays the file as-is, so it must be
+**`h264` video with `aac` audio in an `mp4` container**, and the `moov` atom (the index) must
+be at the start of the file — otherwise seeking is slow.
 
-Плеер ничего не перекодирует на лету. Браузер играет файл как есть, поэтому нужен
-**`h264` + `aac` в контейнере `mp4`**, и `moov` (индекс) должен быть в начале файла —
-иначе перемотка будет рывками.
-
-Проверить:
+Verify:
 
 ```sh
 ffprobe -v error -show_entries stream=codec_name,codec_type -of csv=p=0 video.mp4
-# должно быть: h264, video  /  aac, audio
+# expected: h264, video  /  aac, audio
 ```
 
-Привести в порядок:
+Convert:
 
 ```sh
 ffmpeg -i input.mkv -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p \
        -c:a aac -b:a 160k -movflags +faststart video.mp4
 ```
 
-`-movflags +faststart` — это и есть «`moov` в начале». Без него видео играет, но прыжок
-по таймлайну занимает секунды.
+`-movflags +faststart` places the `moov` atom at the start. Without it the video plays, but
+each seek takes seconds.
 
-**Не подойдут без перекодирования:** `.mkv` (внутри может быть что угодно), `.avi` с
-`mpeg4`, `hevc`/`h265` (Chrome на Windows часто не играет), `ac3`/`dts` звук.
+**Not playable without conversion:** `.mkv` (the codecs inside vary), `.avi` with `mpeg4`,
+`hevc`/`h265` (Chrome on Windows often refuses it), `ac3`/`dts` audio.
 
----
+## Subtitles
 
-## Субтитры
-
-Один файл на видео, в каждой реплике оба языка, оригинал помечен `<b>`:
+One file per video, both languages in each cue, the original marked with `<b>`:
 
 ```
 WEBVTT
@@ -74,114 +69,106 @@ WEBVTT
 Я тот, кто стучится
 ```
 
-Почему один файл, а не два трека: разные языки нарезаны на реплики по-разному, и склейка
-двух независимых файлов по индексу разваливается на первом же расхождении.
+One file rather than two tracks, because the two languages are segmented into cues
+differently and combining two independent files by index fails at the first discrepancy.
 
-Склеить два `.srt` в такой файл:
+Merge two `.srt` files into this format:
 
 ```sh
 python3 scripts/merge-subs.py subs.en.srt subs.ru.srt -o subs.vtt
 ```
 
-Скрипт сам находит сдвиг и растяжение между релизами. Если тайминги заведомо совпадают —
-`--no-warp`.
+The script estimates the offset and scaling between releases. If the timings are known to be
+identical, pass `--no-warp`.
 
-Если субтитры только на одном языке — просто положи `.srt` рядом как `subs.vtt` (переименуй
-и добавь `WEBVTT` первой строкой) или как `subs.srt`, плеер разберёт оба.
+For a single-language track, place the `.srt` as `subs.srt` — both `.vtt` and `.srt` are
+parsed.
 
-Если субтитры не совпадают с видео по времени — не правь файл руками, у этого есть ручка в
-плеере: клавиши `[` и `]` двигают на 0.5 с, сдвиг запоминается для этого видео отдельно.
+If the subtitles are out of sync with the video, do not edit the file: the player provides
+`[` and `]` to shift by 0.5 s, and the shift is remembered per video.
 
----
+## Metadata
 
-## Метаданные
+Without `meta.json`, everything is derived from the directory name:
 
-Без `meta.json` всё выводится из имени папки:
-
-| Папка | Что получится |
+| Directory | Result |
 |---|---|
-| `Dune.2021.1080p.BluRay.x264-GRP` | фильм «Dune», 2021 — теги отброшены |
-| `Dune (2021)` | фильм «Dune (2021)» |
-| `Breaking Bad/S02/E05` | сериал «Breaking Bad», сезон 2, эпизод 5 |
-| `Breaking Bad/2x05` | то же самое |
-| `Some.Movie.1080p.WEB-DL` | фильм «Some Movie» |
+| `Dune.2021.1080p.BluRay.x264-GRP` | film "Dune", 2021 — release tags discarded |
+| `Dune (2021)` | film "Dune", 2021 |
+| `Breaking Bad/S02/E05` | series "Breaking Bad", season 2, episode 5 |
+| `Breaking Bad/2x05` | the same |
+| `Some.Movie.1080p.WEB-DL` | film "Some Movie" |
 
-Если угадалось неправильно — положи `meta.json`:
+If the result is wrong, add `meta.json`:
 
 ```json
 {
   "kind": "movie",
-  "title": "Дюна",
+  "title": "Dune",
   "year": 2021
 }
 ```
 
-| Поле | Значения | Если не указано |
+| Field | Values | Default |
 |---|---|---|
-| `kind` | `movie` / `episode` | `episode`, если в пути есть сезон и эпизод |
-| `title` | строка | из имени папки |
-| `series` | строка | равно `title` |
-| `season`, `episode` | числа | из пути |
-| `year` | число | из имени папки |
-| `duration` | секунды | читается из файла |
-| `poster` | путь | `poster.*` в папке |
+| `kind` | `movie` / `episode` | `episode` when the path contains a season and episode |
+| `title` | string | derived from the directory name |
+| `series` | string | equal to `title` |
+| `season`, `episode` | numbers | derived from the path |
+| `year` | number | derived from the directory name |
+| `duration` | seconds | read from the file |
+| `poster` | path | `poster.*` in the directory |
 
-**Сериал — это не папка, а имя.** Все эпизоды с одинаковым `series` (или одинаковым
-выведенным именем) собираются в одну карточку на главной. Раскладывать можно как удобно:
-`Breaking Bad/S02/E05/`, `Breaking Bad/2x05/`, `breaking-bad-s02e05/` — попадёт в один сериал.
+**A series is a name, not a directory.** Every episode sharing a `series` value (or the same
+derived name) is grouped into one card. The layout is free: `Breaking Bad/S02/E05/`,
+`Breaking Bad/2x05/` and `breaking-bad-s02e05/` all belong to the same series.
 
----
+## Posters
 
-## Обложки
+Two options:
 
-Два способа:
+1. **Local image** — place `poster.jpg` (or `.png`, `.webp`) next to the video. For a series,
+   place it in the shared directory: `media/Breaking Bad/poster.jpg`.
+2. **From the network** — the "Обложка" button in the player or on the series page. It
+   searches TVmaze (series) and iTunes (films) and downloads the selection into
+   `data/posters/`.
 
-1. **Своя картинка** — положи `poster.jpg` (или `.png`/`.webp`) рядом с видео. Для сериала —
-   в общую папку сериала: `media/Breaking Bad/poster.jpg`.
-2. **Из сети** — кнопка «Обложка» в плеере фильма или на странице сериала. Ищет по названию
-   в TVmaze (сериалы) и iTunes (фильмы), выбранную скачивает в `data/posters/`.
+Downloaded posters are stored locally, so the library looks the same without a network
+connection. A file in the media directory takes precedence over a downloaded one.
 
-Скачанная обложка живёт локально: без интернета библиотека выглядит как обычно. Файл в
-папке важнее скачанного.
+## Troubleshooting
 
----
+1. **Is the directory inside `media/`?** Only that root is scanned. A different root is set
+   with `SUBPLAYER_MEDIA`.
+2. **Does the directory contain a video file?** Any name with an `.mp4`, `.m4v` or `.webm`
+   extension is accepted, but only one video per directory — otherwise the first one found is
+   used.
+3. **Does the directory name start with a dot?** Hidden directories are skipped.
+4. **Reload the page.** The catalogue is read on every request; no restart is needed.
+5. **Check the service log:** `journalctl --user -u subplayer -n 20`.
 
-## Если видео не появилось
-
-1. **Папка лежит внутри `media/`?** Скан смотрит только туда. Другой корень задаётся
-   переменной `SUBPLAYER_MEDIA`.
-2. **Файл называется `video.mp4`?** Любое имя с расширением `.mp4`/`.m4v`/`.webm` подходит,
-   но внутри папки должен быть ровно один видеофайл — иначе берётся первый найденный.
-3. **Папка начинается с точки?** Скрытые папки пропускаются.
-4. **Обнови страницу.** Каталог читается на каждый запрос, перезапуск не нужен.
-5. **Проверь лог сервиса:** `journalctl --user -u subplayer -n 20`.
-
-Проверить, что видит сервер, без браузера:
+Inspect what the server sees, without a browser:
 
 ```sh
 curl -s localhost:3000/api/library | python3 -m json.tool | head -40
 ```
 
----
+## Bulk import
 
-## Массовый импорт раздачи
-
-Если есть архив с эпизодами и отдельно субтитры:
+Given an archive of episodes and separate subtitle directories:
 
 ```sh
-./scripts/import.sh раздача.zip ~/Downloads/subs-ru ~/Downloads
+./scripts/import.sh release.zip ~/Downloads/subs-ru ~/Downloads
 ```
 
-Скрипт распаковывает **по одному эпизоду за раз** (места нужно ~1 ГБ, а не под весь архив),
-перекодирует в `mp4`, склеивает субтитры, кладёт `meta.json`. Уже импортированные эпизоды
-пропускает.
+The script extracts **one episode at a time** (about 1 GB of free space is needed rather than
+the size of the whole archive), transcodes to `mp4`, merges the subtitles and writes
+`meta.json`. Episodes already imported are skipped.
 
----
+## Application state
 
-## Куда пишется состояние
+`data/`, next to the binary: `progress.json` (playback positions), `settings.json`
+(preferences), `posters/` (downloaded covers). The directory can be deleted — the library is
+rescanned, but progress and settings are lost.
 
-`data/` рядом с бинарником: `progress.json` (позиции просмотра), `settings.json`
-(настройки), `posters/` (скачанные обложки). Эту папку можно удалить — библиотека
-пересоберётся, но прогресс и настройки сбросятся.
-
-Само `media/` сервис только читает, никогда не пишет и не удаляет.
+The `media/` tree is only ever read. The service never writes to or deletes from it.
