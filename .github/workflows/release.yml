@@ -1,0 +1,112 @@
+name: release
+
+# Tag-driven: `git tag v0.1.0 && git push origin v0.1.0` builds every platform and
+# publishes a GitHub Release with the archives attached.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            archive: subplayer-linux-x86_64.tar.gz
+          - os: macos-14
+            target: aarch64-apple-darwin
+            archive: subplayer-macos-arm64.tar.gz
+          - os: macos-13
+            target: x86_64-apple-darwin
+            archive: subplayer-macos-x86_64.tar.gz
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            archive: subplayer-windows-x86_64.zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      # The binary reads web/dist from disk, so the bundle has to exist before packaging.
+      - name: Build frontend
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Test backend
+        run: cargo test --release --target ${{ matrix.target }}
+
+      - name: Build backend
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="subplayer-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          cp "target/${{ matrix.target }}/release/subplayer" "dist/$name/"
+          cp -r web/dist "dist/$name/web-dist"
+          cp README.md SPEC.md LICENSE AGENTS.md "dist/$name/"
+          cp -r docs "dist/$name/docs"
+          tar -czf "${{ matrix.archive }}" -C dist "$name"
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $name = "subplayer-${{ matrix.target }}"
+          New-Item -ItemType Directory -Force -Path "dist/$name" | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/subplayer.exe" "dist/$name/"
+          Copy-Item -Recurse "web/dist" "dist/$name/web-dist"
+          Copy-Item README.md,SPEC.md,LICENSE,AGENTS.md "dist/$name/"
+          Copy-Item -Recurse "docs" "dist/$name/docs"
+          Compress-Archive -Path "dist/$name" -DestinationPath "${{ matrix.archive }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
