@@ -1,0 +1,23 @@
+# Rust
+/target
+
+# Node
+/node_modules
+/web/node_modules
+/web/dist
+*.tsbuildinfo
+
+# Runtime state: progress, settings, downloaded posters
+/data
+
+# The library itself — personal media, never committed
+/media
+
+# Agent scratch and local verification screenshots
+/.pi
+/.shots
+/.import-tmp
+
+# Python bytecode (scripts are run directly)
+__pycache__/
+*.pyc
