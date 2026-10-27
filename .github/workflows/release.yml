@@ -22,7 +22,9 @@ jobs:
           - os: macos-14
             target: aarch64-apple-darwin
             archive: subplayer-macos-arm64.tar.gz
-          - os: macos-13
+          # Both macOS targets build on the arm runner: macos-13 (Intel) is queued for
+          # tens of minutes, and Rust cross-compiles to x86_64 from arm64 with the same SDK.
+          - os: macos-14
             target: x86_64-apple-darwin
             archive: subplayer-macos-x86_64.tar.gz
           - os: windows-2022
